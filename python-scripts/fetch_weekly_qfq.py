@@ -21,6 +21,7 @@ def detect_exchange(ts_code: str) -> str:
 
 def fetch_weekly_rows(conn: sqlite3.Connection) -> Dict[str, List[Dict[str, object]]]:
     """Fetch grouped weekly_qfq rows, excluding ST stocks and keeping at least 240 records."""
+    # trade_date is stored as TEXT in YYYYMMdd format, so lexical ordering matches chronological order.
     query = """
         WITH filtered AS (
             SELECT w.*
@@ -28,11 +29,16 @@ def fetch_weekly_rows(conn: sqlite3.Connection) -> Dict[str, List[Dict[str, obje
             JOIN stock_info AS si ON w.ts_code = si.ts_code
             WHERE INSTR(UPPER(si.name), 'ST') = 0
         ),
+        global_max AS (
+            SELECT MAX(trade_date) AS max_trade_date
+            FROM filtered
+        ),
         qualified AS (
             SELECT ts_code
             FROM filtered
             GROUP BY ts_code
             HAVING COUNT(*) >= 240
+               AND MAX(trade_date) = (SELECT max_trade_date FROM global_max)
         )
         SELECT
             ts_code,
