@@ -36,6 +36,8 @@ const WEEKLY_COLUMNS = [
   'pct_chg',
 ];
 
+const WEEKLY_INSERT_COLUMNS = [...WEEKLY_COLUMNS, 'is_suspension_fill'];
+
 const WEEKLY_NUMERIC_COLUMNS = new Set([
   'open',
   'high',
@@ -110,6 +112,7 @@ async function createTables(db) {
       amount REAL, -- 成交金额
       change REAL, -- 涨跌额
       pct_chg REAL, -- 涨跌幅（%）
+      is_suspension_fill INTEGER NOT NULL DEFAULT 0, -- suspension fill flag
       PRIMARY KEY (ts_code, trade_date)
     );
   `;
@@ -140,8 +143,8 @@ async function importWeeklyData(db) {
     return;
   }
 
-  const columnsSql = WEEKLY_COLUMNS.map((column) => `"${column}"`).join(', ');
-  const placeholders = WEEKLY_COLUMNS.map((column) => `@${column}`).join(', ');
+  const columnsSql = WEEKLY_INSERT_COLUMNS.map((column) => `"${column}"`).join(', ');
+  const placeholders = WEEKLY_INSERT_COLUMNS.map((column) => `@${column}`).join(', ');
   const insertSql = `INSERT OR REPLACE INTO weekly_qfq (${columnsSql}) VALUES (${placeholders});`;
   const statement = await db.prepare(insertSql);
 
@@ -226,7 +229,11 @@ async function listCsvFiles(directory) {
 
 function mapWeeklyRow(row) {
   const params = {};
-  for (const column of WEEKLY_COLUMNS) {
+  for (const column of WEEKLY_INSERT_COLUMNS) {
+    if (column === 'is_suspension_fill') {
+      params[`@${column}`] = 0;
+      continue;
+    }
     const value = row[column];
     if (WEEKLY_NUMERIC_COLUMNS.has(column)) {
       params[`@${column}`] = toNumber(value);

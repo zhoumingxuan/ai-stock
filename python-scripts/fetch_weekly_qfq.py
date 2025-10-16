@@ -61,7 +61,8 @@ def fetch_weekly_rows(conn: sqlite3.Connection) -> Dict[str, List[Dict[str, obje
             vol,
             amount,
             change,
-            pct_chg
+            pct_chg,
+            is_suspension_fill
         FROM filtered
         WHERE ts_code IN (SELECT ts_code FROM qualified)
         ORDER BY ts_code ASC, trade_date ASC
