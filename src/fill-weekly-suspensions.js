@@ -103,6 +103,41 @@ async function prepareInsertStatement(db) {
   return db.prepare(sql);
 }
 
+function normalizeSuspensionRow(row) {
+  const normalized = { ...row };
+  const close = normalized.close;
+  if (close !== null && close !== undefined) {
+    normalized.open = close;
+    normalized.high = close;
+    normalized.low = close;
+    normalized.pre_close = close;
+  }
+
+  const closeQfq = normalized.close_qfq;
+  if (closeQfq !== null && closeQfq !== undefined) {
+    normalized.open_qfq = closeQfq;
+    normalized.high_qfq = closeQfq;
+    normalized.low_qfq = closeQfq;
+    normalized.close_qfq = closeQfq;
+  }
+
+  const closeHfq = normalized.close_hfq;
+  if (closeHfq !== null && closeHfq !== undefined) {
+    normalized.open_hfq = closeHfq;
+    normalized.high_hfq = closeHfq;
+    normalized.low_hfq = closeHfq;
+    normalized.close_hfq = closeHfq;
+  }
+
+  normalized.amount=0;
+  normalized.vol=0;
+  normalized.change=0;
+  normalized.pct_chg=0;
+
+  normalized.is_suspension_fill = 1;
+  return normalized;
+}
+
 async function fillForSymbol({ db, insertStmt, tsCode, allTradeDates, tradeDateIndex }) {
   const rows = await db.all(
     'SELECT * FROM weekly_qfq WHERE ts_code = ? ORDER BY trade_date ASC;',
@@ -138,7 +173,15 @@ async function fillForSymbol({ db, insertStmt, tsCode, allTradeDates, tradeDateI
       const existing = existingByDate.get(tradeDate);
 
       if (existing) {
-        lastRow = existing;
+        if (existing.is_suspension_fill) {
+          const normalized = normalizeSuspensionRow(existing);
+          const values = INSERT_COLUMNS.map((column) => normalized[column] ?? null);
+          await insertStmt.run(values);
+          existingByDate.set(tradeDate, normalized);
+          lastRow = normalized;
+        } else {
+          lastRow = existing;
+        }
         continue;
       }
 
@@ -147,12 +190,13 @@ async function fillForSymbol({ db, insertStmt, tsCode, allTradeDates, tradeDateI
         continue;
       }
 
-      const newRow = { ...lastRow };
+      let newRow = { ...lastRow };
       newRow.trade_date = tradeDate;
       if (newRow.end_date !== null && newRow.end_date !== undefined) {
         newRow.end_date = tradeDate;
       }
-      newRow.is_suspension_fill = 1;
+
+      newRow = normalizeSuspensionRow(newRow);
 
       const values = INSERT_COLUMNS.map((column) => newRow[column] ?? null);
       await insertStmt.run(values);
@@ -177,4 +221,3 @@ if (require.main === module) {
     process.exitCode = 1;
   });
 }
-
