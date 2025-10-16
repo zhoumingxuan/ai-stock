@@ -145,7 +145,9 @@ def main() -> None:
         if weekly_rows:
             first_trade = weekly_rows[0]["trade_date"]
             last_trade = weekly_rows[-1]["trade_date"]
+            suspension_count = sum(1 for row in weekly_rows if row.get("is_suspension_fill"))
             print(f"  周线记录数: {len(weekly_rows)} 首个交易日: {first_trade} 最新交易日: {last_trade}")
+            print(f"  停牌填充条数: {suspension_count}")
         print("-" * 40)
 
 
