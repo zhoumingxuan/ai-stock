@@ -1,0 +1,28 @@
+{
+  "name": "ai-stock",
+  "version": "1.0.0",
+  "description": "股票模型-数据收集",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "import:data": "node src/import-to-sqlite.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhoumingxuan/ai-stock.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zhoumingxuan/ai-stock/issues"
+  },
+  "homepage": "https://github.com/zhoumingxuan/ai-stock#readme",
+  "dependencies": {
+    "csv-parse": "^6.1.0",
+    "csv-parser": "^3.2.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
+}
